@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/premium_card.dart';
+import 'pagamento_page.dart';
 
 class HomePage extends StatelessWidget {
   final VoidCallback onOpenRaioIa;
@@ -201,7 +202,14 @@ class HomePage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PagamentoPage(),
+                          ),
+                        );
+                      },
                       child: const Text('Pagar Agora'),
                     ),
                   ),

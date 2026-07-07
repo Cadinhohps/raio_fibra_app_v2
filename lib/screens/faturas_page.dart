@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/premium_card.dart';
+import 'pagamento_page.dart';
 
 class FaturasPage extends StatelessWidget {
   const FaturasPage({super.key});
@@ -44,6 +45,7 @@ class FaturasPage extends StatelessWidget {
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 20),
+
             PremiumCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,8 +63,11 @@ class FaturasPage extends StatelessWidget {
                       color: AppColors.primaryBlue,
                     ),
                   ),
+                  const SizedBox(height: 4),
                   const Text('Vencimento: 10/07/2026'),
+                  const Text('Status: Em aberto'),
                   const SizedBox(height: 14),
+
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -74,28 +79,125 @@ class FaturasPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PagamentoPage(),
+                          ),
+                        );
+                      },
                       icon: const Icon(Icons.payment),
-                      label: const Text('Pagar agora'),
+                      label: const Text(
+                        'Pagar agora',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
+
                   const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.pix),
-                    label: const Text('PIX copia e cola'),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'PIX copia e cola será exibido na tela de pagamento.',
+                            ),
+                            backgroundColor: AppColors.secondaryBlue,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.pix),
+                      label: const Text('PIX copia e cola'),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'PDF da fatura será integrado futuramente.',
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('Baixar PDF'),
+                    ),
                   ),
                 ],
               ),
             ),
+
             const SizedBox(height: 22),
+
+            const Text(
+              'Promessa de pagamento',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 12),
+
+            PremiumCard(
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    backgroundColor: Color(0xFFFFE8D6),
+                    child: Icon(Icons.schedule, color: AppColors.orange),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Precisa de mais tempo?',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Informe promessa de pagamento em até 24h.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Promessa de pagamento registrada por 24h.',
+                          ),
+                          backgroundColor: AppColors.secondaryBlue,
+                        ),
+                      );
+                    },
+                    child: const Text('Prometer'),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 22),
+
             const Text(
               'Histórico',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
+
             const SizedBox(height: 12),
+
             ...faturas.map((fatura) {
               final pago = fatura['status'] == 'Pago';
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: PremiumCard(
