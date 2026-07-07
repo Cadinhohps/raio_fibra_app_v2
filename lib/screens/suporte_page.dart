@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/premium_card.dart';
+import 'abrir_chamado_page.dart';
 
 class SuportePage extends StatelessWidget {
   const SuportePage({super.key});
@@ -32,6 +33,7 @@ class SuportePage extends StatelessWidget {
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 20),
+
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -72,12 +74,42 @@ class SuportePage extends StatelessWidget {
                 ],
               ),
             ),
+
             const SizedBox(height: 22),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.all(16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AbrirChamadoPage()),
+                  );
+                },
+                icon: const Icon(Icons.add_task),
+                label: const Text(
+                  'Abrir novo chamado',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 22),
+
             const Text(
-              'Abrir chamado',
+              'Categorias de suporte',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
+
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
@@ -86,31 +118,44 @@ class SuportePage extends StatelessWidget {
               mainAxisSpacing: 12,
               childAspectRatio: 1.7,
               children: categorias.map((item) {
-                return PremiumCard(
-                  child: Row(
-                    children: [
-                      Icon(
-                        item['icon'] as IconData,
-                        color: AppColors.secondaryBlue,
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AbrirChamadoPage(),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          item['nome'] as String,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                    );
+                  },
+                  child: PremiumCard(
+                    child: Row(
+                      children: [
+                        Icon(
+                          item['icon'] as IconData,
+                          color: AppColors.secondaryBlue,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            item['nome'] as String,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }).toList(),
             ),
+
             const SizedBox(height: 22),
+
             const Text(
               'Chamados recentes',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
+
             const PremiumCard(
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
