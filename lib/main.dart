@@ -36,13 +36,19 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int currentIndex = 0;
 
-  final List<Widget> pages = const [
-    HomePage(),
-    FaturasPage(),
-    SuportePage(),
-    RaioIaPage(),
-    VantagensPage(),
-    PerfilPage(),
+  late final List<Widget> pages = [
+    HomePage(
+      onOpenRaioIa: () {
+        setState(() {
+          currentIndex = 3;
+        });
+      },
+    ),
+    const FaturasPage(),
+    const SuportePage(),
+    const RaioIaPage(),
+    const VantagensPage(),
+    const PerfilPage(),
   ];
 
   @override

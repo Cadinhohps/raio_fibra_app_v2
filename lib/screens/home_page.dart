@@ -3,7 +3,9 @@ import '../theme/app_theme.dart';
 import '../widgets/premium_card.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  final VoidCallback onOpenRaioIa;
+
+  const HomePage({super.key, required this.onOpenRaioIa});
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +84,9 @@ class HomePage extends StatelessWidget {
                 ],
               ),
             ),
+
             const SizedBox(height: 20),
+
             Row(
               children: const [
                 Expanded(
@@ -104,7 +108,9 @@ class HomePage extends StatelessWidget {
                 ),
               ],
             ),
+
             const SizedBox(height: 18),
+
             PremiumCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,12 +132,16 @@ class HomePage extends StatelessWidget {
                 ],
               ),
             ),
+
             const SizedBox(height: 22),
+
             const Text(
               'Atalhos rápidos',
               style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
             ),
+
             const SizedBox(height: 12),
+
             GridView.count(
               crossAxisCount: 4,
               shrinkWrap: true,
@@ -149,7 +159,9 @@ class HomePage extends StatelessWidget {
                 QuickAction(icon: Icons.apps, label: 'Serviços'),
               ],
             ),
+
             const SizedBox(height: 22),
+
             PremiumCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,7 +208,9 @@ class HomePage extends StatelessWidget {
                 ],
               ),
             ),
+
             const SizedBox(height: 22),
+
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -242,7 +256,7 @@ class HomePage extends StatelessWidget {
                       backgroundColor: Colors.white,
                       foregroundColor: AppColors.primaryBlue,
                     ),
-                    onPressed: () {},
+                    onPressed: onOpenRaioIa,
                     child: const Text('Conversar'),
                   ),
                 ],
