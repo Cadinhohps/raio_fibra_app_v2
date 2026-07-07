@@ -4,6 +4,7 @@ import 'theme/app_theme.dart';
 import 'screens/home_page.dart';
 import 'screens/faturas_page.dart';
 import 'screens/suporte_page.dart';
+import 'screens/raio_ia_page.dart';
 import 'screens/vantagens_page.dart';
 import 'screens/perfil_page.dart';
 
@@ -39,6 +40,7 @@ class _MainNavigationState extends State<MainNavigation> {
     HomePage(),
     FaturasPage(),
     SuportePage(),
+    RaioIaPage(),
     VantagensPage(),
     PerfilPage(),
   ];
@@ -53,6 +55,7 @@ class _MainNavigationState extends State<MainNavigation> {
         selectedItemColor: AppColors.secondaryBlue,
         unselectedItemColor: Colors.grey,
         backgroundColor: Colors.white,
+        elevation: 12,
         onTap: (index) {
           setState(() {
             currentIndex = index;
@@ -67,6 +70,10 @@ class _MainNavigationState extends State<MainNavigation> {
           BottomNavigationBarItem(
             icon: Icon(Icons.support_agent),
             label: 'Suporte',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.smart_toy),
+            label: 'Raio IA',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.card_giftcard),
