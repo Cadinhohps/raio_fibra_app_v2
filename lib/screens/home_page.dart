@@ -1,15 +1,70 @@
 import 'package:flutter/material.dart';
+
+import '../services/sgp_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/premium_card.dart';
 import 'pagamento_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final VoidCallback onOpenRaioIa;
 
   const HomePage({super.key, required this.onOpenRaioIa});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final SgpService sgpService = SgpService();
+
+  bool carregando = true;
+  Map<String, dynamic>? cliente;
+
+  @override
+  void initState() {
+    super.initState();
+    carregarCliente();
+  }
+
+  Future<void> carregarCliente() async {
+    final resultado = await sgpService.buscarClientePorCpf('000.000.000-00');
+
+    if (!mounted) return;
+
+    setState(() {
+      cliente = resultado;
+      carregando = false;
+    });
+  }
+
+  String get saudacao {
+    final hora = DateTime.now().hour;
+
+    if (hora < 12) {
+      return 'Bom dia';
+    }
+
+    if (hora < 18) {
+      return 'Boa tarde';
+    }
+
+    return 'Boa noite';
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final nomeCliente = cliente?['nome'] ?? 'Cliente';
+    final plano = cliente?['plano'] ?? 'Plano não encontrado';
+    final statusConexao = cliente?['statusConexao'] ?? 'Indisponível';
+
+    if (carregando) {
+      return const SafeArea(
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.secondaryBlue),
+        ),
+      );
+    }
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(18),
@@ -36,8 +91,8 @@ class HomePage extends StatelessWidget {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Row(
+                children: [
+                  const Row(
                     children: [
                       CircleAvatar(
                         radius: 26,
@@ -68,19 +123,21 @@ class HomePage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  SizedBox(height: 26),
+                  const SizedBox(height: 26),
                   Text(
-                    'Bom dia, Ricardo',
-                    style: TextStyle(
+                    '$saudacao, $nomeCliente',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    'Sua conexão está online e funcionando normalmente.',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    statusConexao == 'Online'
+                        ? 'Sua conexão está online e funcionando normalmente.'
+                        : 'Sua conexão precisa de atenção.',
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],
               ),
@@ -89,22 +146,26 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 20),
 
             Row(
-              children: const [
+              children: [
                 Expanded(
                   child: InfoCard(
                     title: 'Plano Atual',
-                    value: '600 Mega',
+                    value: plano,
                     icon: Icons.wifi,
                     color: AppColors.secondaryBlue,
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: InfoCard(
                     title: 'Status',
-                    value: 'Online',
-                    icon: Icons.check_circle,
-                    color: AppColors.success,
+                    value: statusConexao,
+                    icon: statusConexao == 'Online'
+                        ? Icons.check_circle
+                        : Icons.warning_amber,
+                    color: statusConexao == 'Online'
+                        ? AppColors.success
+                        : AppColors.orange,
                   ),
                 ),
               ],
@@ -264,7 +325,7 @@ class HomePage extends StatelessWidget {
                       backgroundColor: Colors.white,
                       foregroundColor: AppColors.primaryBlue,
                     ),
-                    onPressed: onOpenRaioIa,
+                    onPressed: widget.onOpenRaioIa,
                     child: const Text('Conversar'),
                   ),
                 ],
