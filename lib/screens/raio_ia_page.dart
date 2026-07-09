@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../models/chat_message_model.dart';
+import '../services/raio_ia_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/premium_card.dart';
 
 class RaioIaPage extends StatefulWidget {
   const RaioIaPage({super.key});
@@ -11,84 +13,113 @@ class RaioIaPage extends StatefulWidget {
 
 class _RaioIaPageState extends State<RaioIaPage> {
   final TextEditingController messageController = TextEditingController();
+  final ScrollController scrollController = ScrollController();
+  final RaioIaService raioIaService = RaioIaService();
 
-  final List<Map<String, dynamic>> messages = [
-    {
-      'fromUser': false,
-      'text':
-          'Olá! Eu sou a Raio IA. Antes de abrir um chamado, vou tentar resolver seu problema por aqui. Como posso ajudar?',
-    },
+  final List<ChatMessageModel> messages = [
+    ChatMessageModel(
+      fromUser: false,
+      text:
+          'Olá! Eu sou a Raio IA. Antes de abrir chamado, vou tentar resolver seu problema por aqui. Como posso ajudar?',
+      createdAt: DateTime.now(),
+    ),
   ];
 
-  void sendMessage(String text) {
-    if (text.trim().isEmpty) return;
+  bool isTyping = false;
+
+  void sendMessage(String text) async {
+    final message = text.trim();
+
+    if (message.isEmpty) return;
 
     setState(() {
-      messages.add({'fromUser': true, 'text': text.trim()});
+      messages.add(
+        ChatMessageModel(
+          text: message,
+          fromUser: true,
+          createdAt: DateTime.now(),
+        ),
+      );
 
-      messages.add({'fromUser': false, 'text': getMockResponse(text.trim())});
+      isTyping = true;
     });
 
     messageController.clear();
-  }
+    scrollToBottom();
 
-  String getMockResponse(String text) {
-    final lowerText = text.toLowerCase();
+    await Future.delayed(const Duration(milliseconds: 700));
 
-    if (lowerText.contains('sem internet') ||
-        lowerText.contains('caiu') ||
-        lowerText.contains('offline')) {
-      return 'Entendi. Vamos verificar sua conexão. Primeiro, veja se a luz LOS do roteador está apagada ou vermelha. Se estiver vermelha, pode indicar rompimento ou ausência de sinal. Posso abrir um chamado técnico se o problema continuar.';
-    }
+    final resposta = raioIaService.responder(message);
 
-    if (lowerText.contains('lenta') ||
-        lowerText.contains('devagar') ||
-        lowerText.contains('travando')) {
-      return 'Certo. Para lentidão, feche aplicativos pesados, reinicie o roteador e faça um teste de velocidade perto do equipamento. Se o resultado continuar baixo, posso registrar um chamado com prioridade.';
-    }
+    setState(() {
+      messages.add(
+        ChatMessageModel(
+          text: resposta,
+          fromUser: false,
+          createdAt: DateTime.now(),
+        ),
+      );
 
-    if (lowerText.contains('boleto') ||
-        lowerText.contains('fatura') ||
-        lowerText.contains('segunda via') ||
-        lowerText.contains('pix')) {
-      return 'Posso te ajudar com a fatura. Acesse a aba Faturas para visualizar segunda via, PIX copia e cola e pagamento online.';
-    }
+      isTyping = false;
+    });
 
-    if (lowerText.contains('chamado') ||
-        lowerText.contains('técnico') ||
-        lowerText.contains('tecnico')) {
-      return 'Antes de abrir o chamado, vou registrar algumas informações: tipo do problema, horário em que começou e se já reiniciou o roteador. Isso ajuda o suporte a resolver mais rápido.';
-    }
-
-    return 'Entendi. Vou analisar sua solicitação. Você pode me informar se o problema é técnico, financeiro, alteração de plano ou atendimento comercial?';
+    scrollToBottom();
   }
 
   void sendQuickOption(String text) {
     sendMessage(text);
   }
 
+  void scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (!scrollController.hasClients) return;
+
+      scrollController.animateTo(
+        scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    messageController.dispose();
+    scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          _buildHeader(),
-          _buildQuickOptions(),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(18),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final message = messages[index];
-                return ChatBubble(
-                  text: message['text'],
-                  fromUser: message['fromUser'],
-                );
-              },
+    return Scaffold(
+      backgroundColor: AppColors.lightGray,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            _buildQuickOptions(),
+            Expanded(
+              child: ListView.builder(
+                controller: scrollController,
+                padding: const EdgeInsets.all(18),
+                itemCount: messages.length + (isTyping ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (isTyping && index == messages.length) {
+                    return const TypingBubble();
+                  }
+
+                  final message = messages[index];
+
+                  return ChatBubble(
+                    text: message.text,
+                    fromUser: message.fromUser,
+                  );
+                },
+              ),
             ),
-          ),
-          _buildInput(),
-        ],
+            _buildInput(),
+          ],
+        ),
       ),
     );
   }
@@ -149,10 +180,12 @@ class _RaioIaPageState extends State<RaioIaPage> {
       'Internet lenta',
       'Segunda via',
       'Abrir chamado',
+      'Problema no Wi-Fi',
+      'Upgrade de plano',
     ];
 
     return SizedBox(
-      height: 48,
+      height: 50,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 18),
         scrollDirection: Axis.horizontal,
@@ -225,7 +258,7 @@ class ChatBubble extends StatelessWidget {
     return Align(
       alignment: fromUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 310),
+        constraints: const BoxConstraints(maxWidth: 330),
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -250,6 +283,47 @@ class ChatBubble extends StatelessWidget {
             color: fromUser ? Colors.white : Colors.black87,
             height: 1.35,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class TypingBubble extends StatelessWidget {
+  const TypingBubble({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.secondaryBlue,
+              ),
+            ),
+            SizedBox(width: 10),
+            Text('Raio IA digitando...', style: TextStyle(color: Colors.grey)),
+          ],
         ),
       ),
     );
