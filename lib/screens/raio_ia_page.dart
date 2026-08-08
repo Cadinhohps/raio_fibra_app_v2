@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/chat_message_model.dart';
-import '../services/raio_ia_service.dart';
+import '../services/openai_service.dart';
 import '../theme/app_theme.dart';
 
 class RaioIaPage extends StatefulWidget {
@@ -14,13 +14,13 @@ class RaioIaPage extends StatefulWidget {
 class _RaioIaPageState extends State<RaioIaPage> {
   final TextEditingController messageController = TextEditingController();
   final ScrollController scrollController = ScrollController();
-  final RaioIaService raioIaService = RaioIaService();
+  final OpenAiService openAiService = OpenAiService();
 
   final List<ChatMessageModel> messages = [
     ChatMessageModel(
       fromUser: false,
       text:
-          'Olá! Eu sou a Raio IA. Antes de abrir chamado, vou tentar resolver seu problema por aqui. Como posso ajudar?',
+          'Ola! Eu sou a Raio IA. Antes de abrir chamado, vou tentar resolver seu problema por aqui. Como posso ajudar?',
       createdAt: DateTime.now(),
     ),
   ];
@@ -47,9 +47,12 @@ class _RaioIaPageState extends State<RaioIaPage> {
     messageController.clear();
     scrollToBottom();
 
-    await Future.delayed(const Duration(milliseconds: 700));
+    final resposta = await openAiService.enviarMensagem(
+      mensagem: message,
+      historico: messages.map((item) => item.toJson()).toList(),
+    );
 
-    final resposta = raioIaService.responder(message);
+    if (!mounted) return;
 
     setState(() {
       messages.add(
@@ -162,7 +165,7 @@ class _RaioIaPageState extends State<RaioIaPage> {
                   ),
                 ),
                 Text(
-                  'Online agora • Atendimento inteligente',
+                  'Online agora - Atendimento inteligente',
                   style: TextStyle(color: Colors.white70),
                 ),
               ],
@@ -190,7 +193,7 @@ class _RaioIaPageState extends State<RaioIaPage> {
         padding: const EdgeInsets.symmetric(horizontal: 18),
         scrollDirection: Axis.horizontal,
         itemCount: options.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final option = options[index];
 

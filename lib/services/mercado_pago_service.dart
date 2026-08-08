@@ -1,10 +1,33 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:raio_fibra_app_v2/core/api_config.dart';
+
 class MercadoPagoService {
+  static const Duration _timeout = Duration(seconds: 4);
+
   Future<Map<String, dynamic>> criarPagamento({
     required String clienteId,
     required String faturaId,
     required double valor,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 700));
+    try {
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/mercado-pago/criar-pagamento'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'clienteId': clienteId,
+              'faturaId': faturaId,
+              'valor': valor,
+            }),
+          )
+          .timeout(_timeout);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+    } catch (_) {}
 
     return {
       'paymentId': 'MP-DEMO-001',
@@ -17,12 +40,20 @@ class MercadoPagoService {
   }
 
   Future<Map<String, dynamic>> consultarPagamento(String paymentId) async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      final response = await http
+          .get(Uri.parse('${ApiConfig.baseUrl}/mercado-pago/status/$paymentId'))
+          .timeout(_timeout);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+    } catch (_) {}
 
     return {
       'paymentId': paymentId,
       'status': 'pending',
-      'mensagem': 'Pagamento aguardando confirmação.',
+      'mensagem': 'Pagamento aguardando confirmacao.',
     };
   }
 }

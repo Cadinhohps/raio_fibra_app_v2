@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
+import '../models/chamado_model.dart';
+import '../services/sgp_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/premium_card.dart';
-import '../models/chamado_model.dart';
 
 class AbrirChamadoPage extends StatefulWidget {
   const AbrirChamadoPage({super.key});
@@ -12,49 +14,64 @@ class AbrirChamadoPage extends StatefulWidget {
 
 class _AbrirChamadoPageState extends State<AbrirChamadoPage> {
   final TextEditingController descricaoController = TextEditingController();
+  final SgpService sgpService = SgpService();
 
   String categoriaSelecionada = 'Sem internet';
   String prioridadeSelecionada = 'Normal';
   ChamadoModel? chamadoCriado;
+  bool enviando = false;
 
   final List<String> categorias = [
     'Sem internet',
     'Internet lenta',
-    'Oscilação',
+    'Oscilacao',
     'Financeiro',
-    'Mudança de endereço',
+    'Mudanca de endereco',
     'Outros',
   ];
 
   final List<String> prioridades = ['Baixa', 'Normal', 'Alta'];
 
   String getSlaText() {
-    if (prioridadeSelecionada == 'Alta') {
-      return 'até 2h úteis';
-    }
+    if (prioridadeSelecionada == 'Alta') return 'ate 2h uteis';
+    if (prioridadeSelecionada == 'Normal') return 'ate 4h uteis';
 
-    if (prioridadeSelecionada == 'Normal') {
-      return 'até 4h úteis';
-    }
-
-    return 'até 8h úteis';
+    return 'ate 8h uteis';
   }
 
-  void abrirChamado() {
-    final novoChamado = ChamadoModel(
-      protocolo: '#RF1029',
+  Future<void> abrirChamado() async {
+    if (enviando) return;
+
+    final descricao = descricaoController.text.trim().isEmpty
+        ? 'Cliente nao informou descricao.'
+        : descricaoController.text.trim();
+
+    setState(() {
+      enviando = true;
+    });
+
+    final resultado = await sgpService.abrirChamado(
+      clienteId: 'CLI001',
       categoria: categoriaSelecionada,
-      descricao: descricaoController.text.trim().isEmpty
-          ? 'Cliente não informou descrição.'
-          : descricaoController.text.trim(),
+      descricao: descricao,
       prioridade: prioridadeSelecionada,
-      status: 'Aberto',
-      sla: getSlaText(),
+    );
+
+    if (!mounted) return;
+
+    final novoChamado = ChamadoModel(
+      protocolo: resultado['protocolo'] ?? '#RF1030',
+      categoria: resultado['categoria'] ?? categoriaSelecionada,
+      descricao: resultado['descricao'] ?? descricao,
+      prioridade: resultado['prioridade'] ?? prioridadeSelecionada,
+      status: resultado['status'] ?? 'Aberto',
+      sla: resultado['sla'] ?? getSlaText(),
       criadoEm: DateTime.now(),
     );
 
     setState(() {
       chamadoCriado = novoChamado;
+      enviando = false;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -102,16 +119,12 @@ class _AbrirChamadoPageState extends State<AbrirChamadoPage> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 8),
-
               const Text(
                 'Descreva o problema para encaminharmos ao suporte.',
                 style: TextStyle(color: Colors.grey, fontSize: 16),
               ),
-
               const SizedBox(height: 20),
-
               PremiumCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,9 +163,7 @@ class _AbrirChamadoPageState extends State<AbrirChamadoPage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 18),
-
               PremiumCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,15 +210,13 @@ class _AbrirChamadoPageState extends State<AbrirChamadoPage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 18),
-
               PremiumCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Descrição do problema',
+                      'Descricao do problema',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
@@ -219,7 +228,7 @@ class _AbrirChamadoPageState extends State<AbrirChamadoPage> {
                       maxLines: 5,
                       decoration: InputDecoration(
                         hintText:
-                            'Exemplo: estou sem internet desde ontem à noite. O roteador está com luz vermelha...',
+                            'Exemplo: estou sem internet desde ontem a noite. O roteador esta com luz vermelha...',
                         filled: true,
                         fillColor: AppColors.lightGray,
                         border: OutlineInputBorder(
@@ -231,9 +240,7 @@ class _AbrirChamadoPageState extends State<AbrirChamadoPage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 18),
-
               if (chamado != null)
                 Container(
                   width: double.infinity,
@@ -262,9 +269,7 @@ class _AbrirChamadoPageState extends State<AbrirChamadoPage> {
                     ],
                   ),
                 ),
-
               const SizedBox(height: 18),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -276,11 +281,20 @@ class _AbrirChamadoPageState extends State<AbrirChamadoPage> {
                       borderRadius: BorderRadius.circular(18),
                     ),
                   ),
-                  onPressed: abrirChamado,
-                  icon: const Icon(Icons.send),
-                  label: const Text(
-                    'Enviar chamado',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  onPressed: enviando ? null : abrirChamado,
+                  icon: enviando
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.send),
+                  label: Text(
+                    enviando ? 'Enviando...' : 'Enviar chamado',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
