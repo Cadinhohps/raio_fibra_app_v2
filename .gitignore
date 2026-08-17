@@ -48,3 +48,43 @@ backend/node_modules/
 node_modules/
 backend/.env
 .env
+android/build/
+
+# APKs gerados
+*.apk
+*.aab
+
+# Flutter build
+build/
+.dart_tool/
+
+# Android Gradle
+.gradle/
+android/.gradle/
+android/app/build/
+
+# Backend
+backend/node_modules/
+backend/.env
+
+# APKs e builds gerados
+*.apk
+*.aab
+build/
+.dart_tool/
+.gradle/
+android/.gradle/
+android/app/build/
+backend/node_modules/
+backend/.env
+
+*.apk
+*.aab
+build/
+.dart_tool/
+.gradle/
+android/.gradle/
+android/app/build/
+backend/node_modules/
+backend/.env
+Downloads/

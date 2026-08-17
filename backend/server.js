@@ -17,7 +17,7 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    app: 'Raio Fibra IA API',
+    app: 'Raio Fibra Telecom API',
   });
 });
 
@@ -26,5 +26,5 @@ app.use('/sgp', sgpRoutes);
 app.use('/mercado-pago', mercadoPagoRoutes);
 
 app.listen(port, () => {
-  console.log(`Raio Fibra IA API rodando na porta ${port}`);
+  console.log(`Raio Fibra Telecom API rodando na porta ${port}`);
 });

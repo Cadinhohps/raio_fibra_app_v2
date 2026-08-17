@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../models/fatura_model.dart';
-import '../services/sgp_service.dart';
-import '../theme/app_theme.dart';
-import '../widgets/premium_card.dart';
 import 'pagamento_page.dart';
 
 class FaturasPage extends StatefulWidget {
@@ -14,303 +10,335 @@ class FaturasPage extends StatefulWidget {
 }
 
 class _FaturasPageState extends State<FaturasPage> {
-  final SgpService sgpService = SgpService();
-
-  bool carregando = true;
-  List<FaturaModel> faturas = const [];
-
-  @override
-  void initState() {
-    super.initState();
-    carregarFaturas();
-  }
-
-  Future<void> carregarFaturas() async {
-    final resultado = await sgpService.buscarFaturas('CLI001');
-
-    if (!mounted) return;
-
-    setState(() {
-      faturas = resultado.map(FaturaModel.fromJson).toList();
-      carregando = false;
-    });
-  }
+  bool promessaAtiva = false;
 
   void abrirPagamento() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const PagamentoPage()),
+    Navigator.push(context, MaterialPageRoute(builder: (_) => PagamentoPage()));
+  }
+
+  void registrarPromessa() {
+    setState(() {
+      promessaAtiva = true;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Promessa registrada. Internet liberada por até 24 horas.',
+        ),
+        backgroundColor: Color(0xFF071B52),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final faturaAtual = faturas.isNotEmpty ? faturas.first : null;
-
     return Scaffold(
-      backgroundColor: AppColors.lightGray,
+      backgroundColor: const Color(0xFFFF6A00),
       body: SafeArea(
-        child: carregando
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.secondaryBlue,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.18),
+                    ),
+                    onPressed: () => Navigator.maybePop(context),
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Faturas',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 27,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF071B52),
+                  borderRadius: BorderRadius.circular(28),
                 ),
-              )
-            : SingleChildScrollView(
+                child: const Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 31,
+                      backgroundColor: Color(0xFFFF6A00),
+                      child: Icon(
+                        Icons.receipt_long,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                    SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Central de faturas',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 23,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Consulte e pague suas faturas.',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF083BBD),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Fatura atual',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'R\$ 99,90',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Vencimento: 10/07/2026',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Color(0xFF071B52),
+                          padding: const EdgeInsets.all(15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        onPressed: abrirPagamento,
+                        icon: const Icon(Icons.pix),
+                        label: const Text(
+                          'Pagar agora',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(18),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 980),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  children: [
+                    Row(
                       children: [
-                        const Text(
-                          'Faturas',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryBlue,
+                        CircleAvatar(
+                          radius: 27,
+                          backgroundColor: promessaAtiva
+                              ? const Color(0xFFE8FFF5)
+                              : const Color(0xFFFFF2E8),
+                          child: Icon(
+                            promessaAtiva
+                                ? Icons.check_circle
+                                : Icons.lock_open,
+                            color: promessaAtiva
+                                ? const Color(0xFF00A86B)
+                                : const Color(0xFFFF6A00),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Consulte, pague e baixe suas faturas.',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 20),
-                        if (faturaAtual != null)
-                          _FaturaAtualCard(
-                            fatura: faturaAtual,
-                            onPay: abrirPagamento,
-                          ),
-                        const SizedBox(height: 22),
-                        _PromessaPagamentoCard(),
-                        const SizedBox(height: 22),
-                        const Text(
-                          'Historico',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        ...faturas.map(
-                          (fatura) => _FaturaListItem(
-                            fatura: fatura,
-                            onPay: abrirPagamento,
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Text(
+                            promessaAtiva
+                                ? 'Internet liberada por até 24 horas.'
+                                : 'Promessa de pagamento: libere sua internet por 24h.',
+                            style: const TextStyle(
+                              color: Color(0xFF071B52),
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: promessaAtiva
+                              ? const Color(0xFF00A86B)
+                              : const Color(0xFFFF6A00),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.all(14),
+                        ),
+                        onPressed: promessaAtiva ? null : registrarPromessa,
+                        icon: Icon(
+                          promessaAtiva ? Icons.check : Icons.schedule,
+                        ),
+                        label: Text(
+                          promessaAtiva
+                              ? 'Promessa ativa'
+                              : 'Liberar internet por 24 horas',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
+              const SizedBox(height: 22),
+
+              const Text(
+                'Histórico de faturas',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 21,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              _FaturaItem(
+                mes: 'Julho/2026',
+                valor: 'R\$ 99,90',
+                status: 'Pendente',
+                onPay: abrirPagamento,
+              ),
+              _FaturaItem(
+                mes: 'Junho/2026',
+                valor: 'R\$ 99,90',
+                status: 'Pago',
+                onPay: abrirPagamento,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _FaturaAtualCard extends StatelessWidget {
-  final FaturaModel fatura;
+class _FaturaItem extends StatelessWidget {
+  final String mes;
+  final String valor;
+  final String status;
   final VoidCallback onPay;
 
-  const _FaturaAtualCard({required this.fatura, required this.onPay});
+  const _FaturaItem({
+    required this.mes,
+    required this.valor,
+    required this.status,
+    required this.onPay,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return PremiumCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Fatura atual',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 16,
-            runSpacing: 8,
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                fatura.valor,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlue,
-                ),
-              ),
-              Chip(
-                label: Text(fatura.status),
-                backgroundColor: fatura.estaPago
-                    ? Colors.green.shade50
-                    : const Color(0xFFFFE8D6),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text('Competencia: ${fatura.competencia}'),
-          Text('Vencimento: ${fatura.vencimento}'),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.all(15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              onPressed: onPay,
-              icon: const Icon(Icons.payment),
-              label: const Text(
-                'Pagar agora',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'PIX copia e cola sera exibido na tela de pagamento.',
-                      ),
-                      backgroundColor: AppColors.secondaryBlue,
-                    ),
-                  ),
-                  icon: const Icon(Icons.pix),
-                  label: const Text('PIX'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'PDF da fatura sera integrado futuramente.',
-                      ),
-                    ),
-                  ),
-                  icon: const Icon(Icons.picture_as_pdf),
-                  label: const Text('PDF'),
-                ),
-              ),
-            ],
-          ),
-        ],
+    final pago = status == 'Pago';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
       ),
-    );
-  }
-}
-
-class _PromessaPagamentoCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return PremiumCard(
       child: Row(
         children: [
-          const CircleAvatar(
-            backgroundColor: Color(0xFFFFE8D6),
-            child: Icon(Icons.schedule, color: AppColors.orange),
+          CircleAvatar(
+            backgroundColor: pago
+                ? const Color(0xFFE8FFF5)
+                : const Color(0xFFFFF2E8),
+            child: Icon(
+              pago ? Icons.check : Icons.warning_amber,
+              color: pago ? const Color(0xFF00A86B) : const Color(0xFFFF6A00),
+            ),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Promessa de pagamento',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  mes,
+                  style: const TextStyle(
+                    color: Color(0xFF071B52),
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 Text(
-                  'Registro simulado por ate 24h.',
-                  style: TextStyle(color: Colors.grey),
+                  status,
+                  style: TextStyle(
+                    color: pago
+                        ? const Color(0xFF00A86B)
+                        : const Color(0xFFFF6A00),
+                  ),
                 ),
               ],
             ),
           ),
-          TextButton(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Promessa de pagamento registrada por 24h.'),
-                backgroundColor: AppColors.secondaryBlue,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                valor,
+                style: const TextStyle(
+                  color: Color(0xFF071B52),
+                  fontWeight: FontWeight.w900,
+                ),
               ),
-            ),
-            child: const Text('Prometer'),
+              if (!pago)
+                TextButton(onPressed: onPay, child: const Text('Pagar')),
+            ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _FaturaListItem extends StatelessWidget {
-  final FaturaModel fatura;
-  final VoidCallback onPay;
-
-  const _FaturaListItem({required this.fatura, required this.onPay});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: PremiumCard(
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: fatura.estaPago
-                  ? Colors.green.shade50
-                  : Colors.orange.shade50,
-              child: Icon(
-                fatura.estaPago ? Icons.check : Icons.warning_amber,
-                color: fatura.estaPago ? Colors.green : AppColors.orange,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    fatura.competencia,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Vencimento: ${fatura.vencimento}',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  fatura.valor,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  fatura.status,
-                  style: TextStyle(
-                    color: fatura.estaPago ? Colors.green : AppColors.orange,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (!fatura.estaPago)
-                  TextButton(onPressed: onPay, child: const Text('Pagar')),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

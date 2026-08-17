@@ -4,9 +4,8 @@ import 'theme/app_theme.dart';
 import 'screens/home_page.dart';
 import 'screens/faturas_page.dart';
 import 'screens/suporte_page.dart';
-import 'screens/raio_ia_page.dart';
-import 'screens/vantagens_page.dart';
 import 'screens/perfil_page.dart';
+import 'screens/raio_ia_page.dart';
 
 void main() {
   runApp(const RaioFibraApp());
@@ -18,7 +17,7 @@ class RaioFibraApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Raio Fibra IA',
+      title: 'Raio Fibra Telecom',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const MainNavigation(),
@@ -36,18 +35,17 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int currentIndex = 0;
 
+  void abrirRaioIa() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RaioIaPage()),
+    );
+  }
+
   late final List<Widget> pages = [
-    HomePage(
-      onOpenRaioIa: () {
-        setState(() {
-          currentIndex = 3;
-        });
-      },
-    ),
-    const FaturasPage(),
+    HomePage(onOpenRaioIa: abrirRaioIa),
     const SuportePage(),
-    const RaioIaPage(),
-    const VantagensPage(),
+    const FaturasPage(),
     const PerfilPage(),
   ];
 
@@ -70,20 +68,12 @@ class _MainNavigationState extends State<MainNavigation> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long),
-            label: 'Faturas',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.support_agent),
             label: 'Suporte',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.smart_toy),
-            label: 'Raio IA',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.card_giftcard),
-            label: 'Vantagens',
+            icon: Icon(Icons.receipt_long),
+            label: 'Faturas',
           ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
         ],

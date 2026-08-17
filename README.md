@@ -1,4 +1,4 @@
-# Raio Fibra IA
+# Raio Fibra Telecom
 
 App Flutter multiplataforma para provedores de internet, preparado como MVP de demonstracao comercial e testes reais controlados. O projeto combina aplicativo cliente em Flutter com backend Node.js separado para futuras integracoes com OpenAI/ChatGPT, SGP e Mercado Pago.
 
