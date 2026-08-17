@@ -1,4 +1,6 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const { MercadoPagoConfig, Payment } = require('mercadopago');
 
 const router = express.Router();
@@ -8,6 +10,40 @@ const client = new MercadoPagoConfig({
 });
 
 const payment = new Payment(client);
+
+const pagamentosPath = path.join(__dirname, '..', 'data', 'pagamentos.json');
+
+function carregarPagamentos() {
+  try {
+    if (!fs.existsSync(pagamentosPath)) {
+      fs.writeFileSync(pagamentosPath, '{}');
+    }
+
+    const conteudo = fs.readFileSync(pagamentosPath, 'utf8');
+    return JSON.parse(conteudo || '{}');
+  } catch (error) {
+    console.error('Erro ao carregar pagamentos:', error);
+    return {};
+  }
+}
+
+function salvarPagamentos(pagamentos) {
+  fs.writeFileSync(pagamentosPath, JSON.stringify(pagamentos, null, 2));
+}
+
+function salvarStatusPagamento(dados) {
+  const pagamentos = carregarPagamentos();
+
+  pagamentos[dados.external_reference || dados.id] = {
+    id: dados.id,
+    status: dados.status,
+    status_detail: dados.status_detail,
+    external_reference: dados.external_reference,
+    atualizado_em: new Date().toISOString(),
+  };
+
+  salvarPagamentos(pagamentos);
+}
 
 router.post('/pix', async (req, res) => {
   try {
@@ -45,6 +81,13 @@ router.post('/pix', async (req, res) => {
       },
     });
 
+    salvarStatusPagamento({
+      id: resposta.id,
+      status: resposta.status,
+      status_detail: resposta.status_detail,
+      external_reference: resposta.external_reference,
+    });
+
     return res.json({
       id: resposta.id,
       status: resposta.status,
@@ -73,6 +116,13 @@ router.get('/pagamento/:id', async (req, res) => {
       id: req.params.id,
     });
 
+    salvarStatusPagamento({
+      id: resposta.id,
+      status: resposta.status,
+      status_detail: resposta.status_detail,
+      external_reference: resposta.external_reference,
+    });
+
     return res.json({
       id: resposta.id,
       status: resposta.status,
@@ -88,6 +138,24 @@ router.get('/pagamento/:id', async (req, res) => {
       causa: error.cause || null,
     });
   }
+});
+
+router.get('/fatura/:faturaId/status', async (req, res) => {
+  const pagamentos = carregarPagamentos();
+  const pagamento = pagamentos[req.params.faturaId];
+
+  if (!pagamento) {
+    return res.json({
+      faturaId: req.params.faturaId,
+      status: 'nao_encontrado',
+      mensagem: 'Nenhum pagamento encontrado para esta fatura.',
+    });
+  }
+
+  return res.json({
+    faturaId: req.params.faturaId,
+    pagamento,
+  });
 });
 
 router.post('/webhook', async (req, res) => {
@@ -112,21 +180,20 @@ router.post('/webhook', async (req, res) => {
       id: pagamentoId,
     });
 
-    console.log('Pagamento consultado pelo webhook:', {
+    const pagamentoAtualizado = {
       id: resposta.id,
       status: resposta.status,
       status_detail: resposta.status_detail,
       external_reference: resposta.external_reference,
-    });
+    };
+
+    salvarStatusPagamento(pagamentoAtualizado);
+
+    console.log('Pagamento consultado pelo webhook:', pagamentoAtualizado);
 
     return res.status(200).json({
       recebido: true,
-      pagamento: {
-        id: resposta.id,
-        status: resposta.status,
-        status_detail: resposta.status_detail,
-        external_reference: resposta.external_reference,
-      },
+      pagamento: pagamentoAtualizado,
     });
   } catch (error) {
     console.error('Erro no webhook Mercado Pago:', error);
