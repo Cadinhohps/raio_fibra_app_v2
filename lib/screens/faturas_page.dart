@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../services/mercado_pago_service.dart';
+import '../services/sgp_service.dart';
 import 'pagamento_page.dart';
 
 class FaturasPage extends StatefulWidget {
@@ -11,491 +11,263 @@ class FaturasPage extends StatefulWidget {
 }
 
 class _FaturasPageState extends State<FaturasPage> {
-  final MercadoPagoService mercadoPagoService = MercadoPagoService();
+  final SgpService sgpService = SgpService();
 
-  bool promessaAtiva = false;
-  bool carregandoStatus = true;
-
-  String statusPagamento = 'nao_encontrado';
-  String statusDetalhe = '';
-  String pagamentoId = '-';
-
-  static const String faturaId = 'FAT-JUL-2026';
-
-  bool get faturaPaga => statusPagamento == 'approved';
+  bool carregando = true;
+  List<Map<String, dynamic>> faturas = [];
 
   @override
   void initState() {
     super.initState();
-    consultarStatusFatura();
+    carregarFaturas();
   }
 
-  Future<void> consultarStatusFatura() async {
+  Future<void> carregarFaturas() async {
     setState(() {
-      carregandoStatus = true;
+      carregando = true;
     });
 
     try {
-      final resultado = await mercadoPagoService.consultarStatusFatura(
-        faturaId,
-      );
-
-      final pagamento = resultado['pagamento'];
+      final resultado = await sgpService.buscarFaturas('CLI-308');
 
       if (!mounted) return;
 
       setState(() {
-        if (pagamento is Map<String, dynamic>) {
-          statusPagamento = pagamento['status']?.toString() ?? 'pending';
-          statusDetalhe = pagamento['status_detail']?.toString() ?? '';
-          pagamentoId = pagamento['id']?.toString() ?? '-';
-        } else {
-          statusPagamento = resultado['status']?.toString() ?? 'nao_encontrado';
-          statusDetalhe = resultado['mensagem']?.toString() ?? '';
-          pagamentoId = '-';
-        }
-
-        carregandoStatus = false;
+        faturas = resultado;
+        carregando = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
 
       setState(() {
-        statusPagamento = 'erro';
-        statusDetalhe = 'Não foi possível consultar o status.';
-        pagamentoId = '-';
-        carregandoStatus = false;
+        carregando = false;
       });
     }
   }
 
-  Future<void> abrirPagamento() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => PagamentoPage()),
-    );
-
-    consultarStatusFatura();
-  }
-
-  void registrarPromessa() {
-    setState(() {
-      promessaAtiva = true;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Promessa registrada. Internet liberada por até 24 horas.',
-        ),
-        backgroundColor: Color(0xFF071B52),
-      ),
-    );
-  }
-
-  String get statusTexto {
-    if (carregandoStatus) return 'Consultando...';
-
-    switch (statusPagamento) {
-      case 'approved':
-        return 'Pago';
-      case 'pending':
-        return 'Pendente';
-      case 'rejected':
-        return 'Recusado';
-      case 'cancelled':
-        return 'Cancelado';
-      case 'nao_encontrado':
-        return 'Pendente';
-      case 'erro':
-        return 'Erro ao consultar';
-      default:
-        return statusPagamento;
-    }
-  }
-
-  Color get statusCor {
-    if (faturaPaga) return const Color(0xFF00A86B);
-    if (statusPagamento == 'erro') return Colors.red;
-    return const Color(0xFFFF6A00);
+  bool estaPago(Map<String, dynamic> fatura) {
+    final status = (fatura['status'] ?? '').toString().toLowerCase();
+    return fatura['estaPago'] == true || status.contains('pago');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFF6A00),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+      backgroundColor: const Color(0xFFFF7A00),
+      appBar: AppBar(
+        title: const Text('Faturas'),
+        backgroundColor: const Color(0xFFFF7A00),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: carregando
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          : RefreshIndicator(
+              onRefresh: carregarFaturas,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
                 children: [
-                  IconButton(
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.18),
-                    ),
-                    onPressed: () => Navigator.maybePop(context),
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      'Faturas',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 27,
-                        fontWeight: FontWeight.w900,
-                      ),
+                  const Text(
+                    'Minhas faturas',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  IconButton(
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.18),
-                    ),
-                    onPressed: consultarStatusFatura,
-                    icon: const Icon(Icons.refresh, color: Colors.white),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Dados consultados no SGP Demo',
+                    style: TextStyle(color: Colors.white, fontSize: 15),
                   ),
-                ],
-              ),
-              const SizedBox(height: 18),
+                  const SizedBox(height: 20),
+                  if (faturas.isEmpty)
+                    const _InfoCard(
+                      titulo: 'Nenhuma fatura encontrada',
+                      subtitulo:
+                          'O SGP Demo não retornou faturas para este contrato.',
+                    ),
+                  ...faturas.map((fatura) {
+                    final pago = estaPago(fatura);
 
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF071B52),
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 31,
-                      backgroundColor: Color(0xFFFF6A00),
-                      child: Icon(
-                        Icons.receipt_long,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Central de faturas',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 23,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            faturaPaga
-                                ? 'Sua fatura atual está paga.'
-                                : 'Consulte e pague suas faturas.',
-                            style: const TextStyle(color: Colors.white70),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF004AAD),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF083BBD),
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Fatura atual',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'R\$ 99,90',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 34,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            statusTexto,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            (fatura['competencia'] ?? 'Fatura SGP').toString(),
                             style: const TextStyle(
                               color: Colors.white,
-                              fontWeight: FontWeight.w900,
+                              fontSize: 19,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Vencimento: 10/07/2026',
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'ID pagamento: $pagamentoId',
-                      style: const TextStyle(color: Colors.white54),
-                    ),
-                    if (statusDetalhe.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        statusDetalhe,
-                        style: const TextStyle(color: Colors.white54),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: faturaPaga
-                              ? const Color(0xFF00A86B)
-                              : Colors.white,
-                          foregroundColor: faturaPaga
-                              ? Colors.white
-                              : const Color(0xFF071B52),
-                          padding: const EdgeInsets.all(15),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
+                          const SizedBox(height: 10),
+                          _LinhaFatura(
+                            titulo: 'Valor',
+                            valor: (fatura['valor'] ?? '-').toString(),
                           ),
-                        ),
-                        onPressed: faturaPaga ? null : abrirPagamento,
-                        icon: Icon(faturaPaga ? Icons.check_circle : Icons.pix),
-                        label: Text(
-                          faturaPaga ? 'Fatura paga' : 'Pagar agora',
-                          style: const TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white),
-                          padding: const EdgeInsets.all(14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
+                          _LinhaFatura(
+                            titulo: 'Vencimento',
+                            valor: (fatura['vencimento'] ?? '-').toString(),
                           ),
-                        ),
-                        onPressed: consultarStatusFatura,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text(
-                          'Atualizar status',
-                          style: TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 27,
-                          backgroundColor: promessaAtiva
-                              ? const Color(0xFFE8FFF5)
-                              : const Color(0xFFFFF2E8),
-                          child: Icon(
-                            promessaAtiva
-                                ? Icons.check_circle
-                                : Icons.lock_open,
-                            color: promessaAtiva
-                                ? const Color(0xFF00A86B)
-                                : const Color(0xFFFF6A00),
+                          _LinhaFatura(
+                            titulo: 'Contrato',
+                            valor: (fatura['contrato'] ?? '308').toString(),
                           ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Text(
-                            promessaAtiva
-                                ? 'Internet liberada por até 24 horas.'
-                                : 'Promessa de pagamento: libere sua internet por 24h.',
-                            style: const TextStyle(
-                              color: Color(0xFF071B52),
-                              fontWeight: FontWeight.w900,
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: pago ? Colors.green : Colors.orange,
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Text(
+                              pago
+                                  ? 'Pago'
+                                  : (fatura['status'] ?? 'Em aberto')
+                                        .toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: promessaAtiva
-                              ? const Color(0xFF00A86B)
-                              : const Color(0xFFFF6A00),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.all(14),
-                        ),
-                        onPressed: promessaAtiva || faturaPaga
-                            ? null
-                            : registrarPromessa,
-                        icon: Icon(
-                          promessaAtiva ? Icons.check : Icons.schedule,
-                        ),
-                        label: Text(
-                          promessaAtiva
-                              ? 'Promessa ativa'
-                              : faturaPaga
-                              ? 'Fatura já paga'
-                              : 'Liberar internet por 24 horas',
-                          style: const TextStyle(fontWeight: FontWeight.w900),
-                        ),
+                          const SizedBox(height: 14),
+                          if (!pago)
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => PagamentoPage(
+                                        clienteId:
+                                            (fatura['clienteId'] ?? 'CLI-308')
+                                                .toString(),
+                                        faturaId:
+                                            (fatura['id'] ?? 'FAT-SGP-DEMO')
+                                                .toString(),
+                                        valor:
+                                            double.tryParse(
+                                              (fatura['valor'] ?? '99.90')
+                                                  .toString()
+                                                  .replaceAll('R\$', '')
+                                                  .replaceAll('.', '')
+                                                  .replaceAll(',', '.')
+                                                  .trim(),
+                                            ) ??
+                                            99.90,
+                                        vencimento:
+                                            (fatura['vencimento'] ?? 'Dia 20')
+                                                .toString(),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.pix),
+                                label: const Text('Pagar agora'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF004AAD),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 13,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
+                    );
+                  }),
+                ],
               ),
+            ),
+    );
+  }
+}
 
-              const SizedBox(height: 22),
+class _LinhaFatura extends StatelessWidget {
+  final String titulo;
+  final String valor;
 
-              const Text(
-                'Histórico de faturas',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 21,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 12),
+  const _LinhaFatura({required this.titulo, required this.valor});
 
-              _FaturaItem(
-                mes: 'Julho/2026',
-                valor: 'R\$ 99,90',
-                status: statusTexto,
-                statusColor: statusCor,
-                onPay: abrirPagamento,
-              ),
-              _FaturaItem(
-                mes: 'Junho/2026',
-                valor: 'R\$ 99,90',
-                status: 'Pago',
-                statusColor: const Color(0xFF00A86B),
-                onPay: abrirPagamento,
-              ),
-            ],
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            titulo,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
-        ),
+          Flexible(
+            child: Text(
+              valor,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _FaturaItem extends StatelessWidget {
-  final String mes;
-  final String valor;
-  final String status;
-  final Color statusColor;
-  final VoidCallback onPay;
+class _InfoCard extends StatelessWidget {
+  final String titulo;
+  final String subtitulo;
 
-  const _FaturaItem({
-    required this.mes,
-    required this.valor,
-    required this.status,
-    required this.statusColor,
-    required this.onPay,
-  });
+  const _InfoCard({required this.titulo, required this.subtitulo});
 
   @override
   Widget build(BuildContext context) {
-    final pago = status == 'Pago';
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        color: const Color(0xFF004AAD),
+        borderRadius: BorderRadius.circular(18),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            backgroundColor: pago
-                ? const Color(0xFFE8FFF5)
-                : const Color(0xFFFFF2E8),
-            child: Icon(
-              pago ? Icons.check : Icons.warning_amber,
-              color: statusColor,
+          Text(
+            titulo,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  mes,
-                  style: const TextStyle(
-                    color: Color(0xFF071B52),
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(status, style: TextStyle(color: statusColor)),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                valor,
-                style: const TextStyle(
-                  color: Color(0xFF071B52),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              if (!pago)
-                TextButton(onPressed: onPay, child: const Text('Pagar')),
-            ],
-          ),
+          const SizedBox(height: 8),
+          Text(subtitulo, style: const TextStyle(color: Colors.white70)),
         ],
       ),
     );

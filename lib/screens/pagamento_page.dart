@@ -6,7 +6,18 @@ import '../theme/app_theme.dart';
 import '../widgets/premium_card.dart';
 
 class PagamentoPage extends StatefulWidget {
-  const PagamentoPage({super.key});
+  final String clienteId;
+  final String faturaId;
+  final double valor;
+  final String vencimento;
+
+  const PagamentoPage({
+    super.key,
+    this.clienteId = 'CLI-308',
+    this.faturaId = 'FAT-SGP-DEMO',
+    this.valor = 99.90,
+    this.vencimento = 'Dia 20',
+  });
 
   @override
   State<PagamentoPage> createState() => _PagamentoPageState();
@@ -24,11 +35,15 @@ class _PagamentoPageState extends State<PagamentoPage> {
     carregarPagamento();
   }
 
+  String valorFormatado() {
+    return 'R\$ ${widget.valor.toStringAsFixed(2).replaceAll('.', ',')}';
+  }
+
   Future<void> carregarPagamento() async {
     final resultado = await mercadoPagoService.criarPagamento(
-      clienteId: 'CLI001',
-      faturaId: 'FAT-JUL-2026',
-      valor: 99.90,
+      clienteId: widget.clienteId,
+      faturaId: widget.faturaId,
+      valor: widget.valor,
     );
 
     if (!mounted) return;
@@ -46,24 +61,28 @@ class _PagamentoPageState extends State<PagamentoPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Codigo PIX copiado com sucesso!'),
+        content: Text('Código PIX copiado com sucesso!'),
         backgroundColor: AppColors.secondaryBlue,
       ),
     );
   }
 
   Future<void> consultarPagamento() async {
-    final paymentId = pagamento?['paymentId'] ?? '';
+    final paymentId = pagamento?['paymentId'] ?? pagamento?['id'] ?? '';
 
-    if (paymentId.isEmpty) return;
+    if (paymentId.toString().isEmpty) return;
 
-    final resultado = await mercadoPagoService.consultarPagamento(paymentId);
+    final resultado = await mercadoPagoService.consultarPagamento(
+      paymentId.toString(),
+    );
 
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(resultado['mensagem'] ?? 'Status consultado.'),
+        content: Text(
+          resultado['mensagem'] ?? resultado['status'] ?? 'Status consultado.',
+        ),
         backgroundColor: AppColors.secondaryBlue,
       ),
     );
@@ -71,9 +90,18 @@ class _PagamentoPageState extends State<PagamentoPage> {
 
   @override
   Widget build(BuildContext context) {
-    final pixCode = pagamento?['pixCopiaCola'] ?? '';
-    final checkoutUrl = pagamento?['checkoutUrl'] ?? '';
+    final pixCode =
+        pagamento?['pixCopiaCola'] ??
+        pagamento?['qr_code'] ??
+        pagamento?['pix'] ??
+        '';
+
+    final checkoutUrl =
+        pagamento?['checkoutUrl'] ?? pagamento?['ticket_url'] ?? '';
+
     final status = pagamento?['status'] ?? 'pending';
+
+    final paymentId = pagamento?['paymentId'] ?? pagamento?['id'] ?? '-';
 
     return Scaffold(
       backgroundColor: AppColors.lightGray,
@@ -117,27 +145,28 @@ class _PagamentoPageState extends State<PagamentoPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Fatura atual',
+                                'Fatura selecionada',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               const SizedBox(height: 14),
-                              const Text(
-                                'R\$ 99,90',
-                                style: TextStyle(
+                              Text(
+                                valorFormatado(),
+                                style: const TextStyle(
                                   fontSize: 34,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.primaryBlue,
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              const Text('Vencimento: 10/07/2026'),
+                              Text('Vencimento: ${widget.vencimento}'),
+                              Text('Fatura: ${widget.faturaId}'),
                               Text('Status Mercado Pago: $status'),
                               const SizedBox(height: 8),
                               Text(
-                                'ID do pagamento: ${pagamento?['paymentId'] ?? '-'}',
+                                'ID do pagamento: $paymentId',
                                 style: const TextStyle(color: Colors.grey),
                               ),
                             ],
@@ -185,7 +214,7 @@ class _PagamentoPageState extends State<PagamentoPage> {
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Text(
-                                  pixCode,
+                                  pixCode.toString(),
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(fontSize: 12),
@@ -203,7 +232,8 @@ class _PagamentoPageState extends State<PagamentoPage> {
                                       borderRadius: BorderRadius.circular(18),
                                     ),
                                   ),
-                                  onPressed: () => copiarPix(pixCode),
+                                  onPressed: () =>
+                                      copiarPix(pixCode.toString()),
                                   icon: const Icon(Icons.copy),
                                   label: const Text(
                                     'Copiar PIX',
@@ -230,7 +260,7 @@ class _PagamentoPageState extends State<PagamentoPage> {
                               ),
                               const SizedBox(height: 8),
                               const Text(
-                                'Este botao usa um service simulado. Na versao final, ele abrira o checkout real do Mercado Pago.',
+                                'Pagamento gerado com base na fatura selecionada.',
                                 style: TextStyle(color: Colors.grey),
                               ),
                               const SizedBox(height: 14),
@@ -242,29 +272,11 @@ class _PagamentoPageState extends State<PagamentoPage> {
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Text(
-                                  checkoutUrl,
+                                  checkoutUrl.toString(),
                                   style: const TextStyle(fontSize: 12),
                                 ),
                               ),
                               const SizedBox(height: 14),
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  onPressed: () => ScaffoldMessenger.of(context)
-                                      .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Checkout Mercado Pago simulado. Integracao real sera feita com API.',
-                                          ),
-                                        ),
-                                      ),
-                                  icon: const Icon(Icons.payment),
-                                  label: const Text(
-                                    'Abrir checkout Mercado Pago',
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
                               SizedBox(
                                 width: double.infinity,
                                 child: OutlinedButton.icon(
