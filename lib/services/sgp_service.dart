@@ -9,11 +9,7 @@ class SgpService {
   Future<Map<String, dynamic>> buscarClientePorCpf(String cpf) async {
     try {
       final response = await http
-          .post(
-            Uri.parse('${ApiConfig.baseUrl}/sgp/cliente'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'cpf': cpf}),
-          )
+          .get(Uri.parse('${ApiConfig.baseUrl}/sgp/cliente/$cpf'))
           .timeout(_timeout);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -25,20 +21,18 @@ class SgpService {
       'id': 'CLI001',
       'nome': 'Ricardo',
       'cpf': cpf,
-      'plano': '600 Mega',
-      'statusContrato': 'Ativo',
+      'plano': 'Plano 600 Mega',
+      'status': 'Ativo',
       'statusConexao': 'Online',
+      'endereco': 'Rua Exemplo, 123',
+      'vencimento': '10',
     };
   }
 
   Future<List<Map<String, dynamic>>> buscarFaturas(String clienteId) async {
     try {
       final response = await http
-          .post(
-            Uri.parse('${ApiConfig.baseUrl}/sgp/faturas'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'clienteId': clienteId}),
-          )
+          .get(Uri.parse('${ApiConfig.baseUrl}/sgp/faturas/$clienteId'))
           .timeout(_timeout);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -49,37 +43,43 @@ class SgpService {
 
     return [
       {
-        'id': 'FAT001',
+        'id': 'FAT-JUL-2026',
         'clienteId': clienteId,
         'competencia': 'Julho/2026',
-        'valor': 99.90,
+        'valor': 'R\$ 99,90',
         'vencimento': '10/07/2026',
-        'status': 'Em aberto',
-        'pixCopiaCola':
-            '00020126580014br.gov.bcb.pix0136raiofibra-pagamento-demo520400005303986540599.905802BR5920RAIO FIBRA INTERNET6009PERNAMBUCO62070503***6304ABCD',
-        'pdfUrl': 'https://raiofibra.example/faturas/FAT001.pdf',
+        'status': 'Pendente',
+        'estaPago': false,
       },
       {
-        'id': 'FAT002',
+        'id': 'FAT-JUN-2026',
         'clienteId': clienteId,
         'competencia': 'Junho/2026',
-        'valor': 99.90,
+        'valor': 'R\$ 99,90',
         'vencimento': '10/06/2026',
         'status': 'Pago',
-        'pixCopiaCola': '',
-        'pdfUrl': 'https://raiofibra.example/faturas/FAT002.pdf',
-      },
-      {
-        'id': 'FAT003',
-        'clienteId': clienteId,
-        'competencia': 'Maio/2026',
-        'valor': 99.90,
-        'vencimento': '10/05/2026',
-        'status': 'Pago',
-        'pixCopiaCola': '',
-        'pdfUrl': 'https://raiofibra.example/faturas/FAT003.pdf',
+        'estaPago': true,
       },
     ];
+  }
+
+  Future<Map<String, dynamic>> buscarStatusCliente(String clienteId) async {
+    try {
+      final response = await http
+          .get(Uri.parse('${ApiConfig.baseUrl}/sgp/status/$clienteId'))
+          .timeout(_timeout);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+
+    return {
+      'clienteId': clienteId,
+      'status': 'Ativo',
+      'statusConexao': 'Online',
+      'plano': 'Plano 600 Mega',
+    };
   }
 
   Future<Map<String, dynamic>> abrirChamado({

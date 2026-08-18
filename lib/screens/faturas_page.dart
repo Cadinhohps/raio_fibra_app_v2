@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/mercado_pago_service.dart';
 import 'pagamento_page.dart';
 
 class FaturasPage extends StatefulWidget {
@@ -10,10 +11,71 @@ class FaturasPage extends StatefulWidget {
 }
 
 class _FaturasPageState extends State<FaturasPage> {
-  bool promessaAtiva = false;
+  final MercadoPagoService mercadoPagoService = MercadoPagoService();
 
-  void abrirPagamento() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => PagamentoPage()));
+  bool promessaAtiva = false;
+  bool carregandoStatus = true;
+
+  String statusPagamento = 'nao_encontrado';
+  String statusDetalhe = '';
+  String pagamentoId = '-';
+
+  static const String faturaId = 'FAT-JUL-2026';
+
+  bool get faturaPaga => statusPagamento == 'approved';
+
+  @override
+  void initState() {
+    super.initState();
+    consultarStatusFatura();
+  }
+
+  Future<void> consultarStatusFatura() async {
+    setState(() {
+      carregandoStatus = true;
+    });
+
+    try {
+      final resultado = await mercadoPagoService.consultarStatusFatura(
+        faturaId,
+      );
+
+      final pagamento = resultado['pagamento'];
+
+      if (!mounted) return;
+
+      setState(() {
+        if (pagamento is Map<String, dynamic>) {
+          statusPagamento = pagamento['status']?.toString() ?? 'pending';
+          statusDetalhe = pagamento['status_detail']?.toString() ?? '';
+          pagamentoId = pagamento['id']?.toString() ?? '-';
+        } else {
+          statusPagamento = resultado['status']?.toString() ?? 'nao_encontrado';
+          statusDetalhe = resultado['mensagem']?.toString() ?? '';
+          pagamentoId = '-';
+        }
+
+        carregandoStatus = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        statusPagamento = 'erro';
+        statusDetalhe = 'Não foi possível consultar o status.';
+        pagamentoId = '-';
+        carregandoStatus = false;
+      });
+    }
+  }
+
+  Future<void> abrirPagamento() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => PagamentoPage()),
+    );
+
+    consultarStatusFatura();
   }
 
   void registrarPromessa() {
@@ -29,6 +91,33 @@ class _FaturasPageState extends State<FaturasPage> {
         backgroundColor: Color(0xFF071B52),
       ),
     );
+  }
+
+  String get statusTexto {
+    if (carregandoStatus) return 'Consultando...';
+
+    switch (statusPagamento) {
+      case 'approved':
+        return 'Pago';
+      case 'pending':
+        return 'Pendente';
+      case 'rejected':
+        return 'Recusado';
+      case 'cancelled':
+        return 'Cancelado';
+      case 'nao_encontrado':
+        return 'Pendente';
+      case 'erro':
+        return 'Erro ao consultar';
+      default:
+        return statusPagamento;
+    }
+  }
+
+  Color get statusCor {
+    if (faturaPaga) return const Color(0xFF00A86B);
+    if (statusPagamento == 'erro') return Colors.red;
+    return const Color(0xFFFF6A00);
   }
 
   @override
@@ -61,6 +150,13 @@ class _FaturasPageState extends State<FaturasPage> {
                       ),
                     ),
                   ),
+                  IconButton(
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.18),
+                    ),
+                    onPressed: consultarStatusFatura,
+                    icon: const Icon(Icons.refresh, color: Colors.white),
+                  ),
                 ],
               ),
               const SizedBox(height: 18),
@@ -72,9 +168,9 @@ class _FaturasPageState extends State<FaturasPage> {
                   color: const Color(0xFF071B52),
                   borderRadius: BorderRadius.circular(28),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    CircleAvatar(
+                    const CircleAvatar(
                       radius: 31,
                       backgroundColor: Color(0xFFFF6A00),
                       child: Icon(
@@ -83,12 +179,12 @@ class _FaturasPageState extends State<FaturasPage> {
                         size: 32,
                       ),
                     ),
-                    SizedBox(width: 14),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'Central de faturas',
                             style: TextStyle(
                               color: Colors.white,
@@ -96,10 +192,12 @@ class _FaturasPageState extends State<FaturasPage> {
                               fontWeight: FontWeight.w900,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            'Consulte e pague suas faturas.',
-                            style: TextStyle(color: Colors.white70),
+                            faturaPaga
+                                ? 'Sua fatura atual está paga.'
+                                : 'Consulte e pague suas faturas.',
+                            style: const TextStyle(color: Colors.white70),
                           ),
                         ],
                       ),
@@ -129,35 +227,94 @@ class _FaturasPageState extends State<FaturasPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'R\$ 99,90',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 34,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'R\$ 99,90',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 34,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            statusTexto,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     const Text(
                       'Vencimento: 10/07/2026',
                       style: TextStyle(color: Colors.white70),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'ID pagamento: $pagamentoId',
+                      style: const TextStyle(color: Colors.white54),
+                    ),
+                    if (statusDetalhe.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        statusDetalhe,
+                        style: const TextStyle(color: Colors.white54),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Color(0xFF071B52),
+                          backgroundColor: faturaPaga
+                              ? const Color(0xFF00A86B)
+                              : Colors.white,
+                          foregroundColor: faturaPaga
+                              ? Colors.white
+                              : const Color(0xFF071B52),
                           padding: const EdgeInsets.all(15),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(18),
                           ),
                         ),
-                        onPressed: abrirPagamento,
-                        icon: const Icon(Icons.pix),
+                        onPressed: faturaPaga ? null : abrirPagamento,
+                        icon: Icon(faturaPaga ? Icons.check_circle : Icons.pix),
+                        label: Text(
+                          faturaPaga ? 'Fatura paga' : 'Pagar agora',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white),
+                          padding: const EdgeInsets.all(14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        onPressed: consultarStatusFatura,
+                        icon: const Icon(Icons.refresh),
                         label: const Text(
-                          'Pagar agora',
+                          'Atualizar status',
                           style: TextStyle(fontWeight: FontWeight.w900),
                         ),
                       ),
@@ -218,13 +375,17 @@ class _FaturasPageState extends State<FaturasPage> {
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.all(14),
                         ),
-                        onPressed: promessaAtiva ? null : registrarPromessa,
+                        onPressed: promessaAtiva || faturaPaga
+                            ? null
+                            : registrarPromessa,
                         icon: Icon(
                           promessaAtiva ? Icons.check : Icons.schedule,
                         ),
                         label: Text(
                           promessaAtiva
                               ? 'Promessa ativa'
+                              : faturaPaga
+                              ? 'Fatura já paga'
                               : 'Liberar internet por 24 horas',
                           style: const TextStyle(fontWeight: FontWeight.w900),
                         ),
@@ -249,13 +410,15 @@ class _FaturasPageState extends State<FaturasPage> {
               _FaturaItem(
                 mes: 'Julho/2026',
                 valor: 'R\$ 99,90',
-                status: 'Pendente',
+                status: statusTexto,
+                statusColor: statusCor,
                 onPay: abrirPagamento,
               ),
               _FaturaItem(
                 mes: 'Junho/2026',
                 valor: 'R\$ 99,90',
                 status: 'Pago',
+                statusColor: const Color(0xFF00A86B),
                 onPay: abrirPagamento,
               ),
             ],
@@ -270,12 +433,14 @@ class _FaturaItem extends StatelessWidget {
   final String mes;
   final String valor;
   final String status;
+  final Color statusColor;
   final VoidCallback onPay;
 
   const _FaturaItem({
     required this.mes,
     required this.valor,
     required this.status,
+    required this.statusColor,
     required this.onPay,
   });
 
@@ -298,7 +463,7 @@ class _FaturaItem extends StatelessWidget {
                 : const Color(0xFFFFF2E8),
             child: Icon(
               pago ? Icons.check : Icons.warning_amber,
-              color: pago ? const Color(0xFF00A86B) : const Color(0xFFFF6A00),
+              color: statusColor,
             ),
           ),
           const SizedBox(width: 14),
@@ -313,14 +478,7 @@ class _FaturaItem extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                Text(
-                  status,
-                  style: TextStyle(
-                    color: pago
-                        ? const Color(0xFF00A86B)
-                        : const Color(0xFFFF6A00),
-                  ),
-                ),
+                Text(status, style: TextStyle(color: statusColor)),
               ],
             ),
           ),

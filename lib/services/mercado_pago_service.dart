@@ -19,6 +19,11 @@ class MercadoPagoService {
         'clienteId': clienteId,
         'faturaId': faturaId,
         'valor': valor,
+        'descricao': 'Fatura Raio Fibra Telecom',
+        'email': 'cliente@email.com',
+        'nome': 'Ricardo',
+        'sobrenome': 'Cliente',
+        'cpf': '00000000000',
       }),
     );
 
@@ -39,6 +44,19 @@ class MercadoPagoService {
 
     if (response.statusCode >= 400) {
       throw Exception(data['erro'] ?? 'Erro ao consultar pagamento');
+    }
+
+    return Map<String, dynamic>.from(data);
+  }
+
+  Future<Map<String, dynamic>> consultarStatusFatura(String faturaId) async {
+    final url = Uri.parse('$baseUrl/mercado-pago/fatura/$faturaId/status');
+
+    final response = await http.get(url);
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 400) {
+      throw Exception(data['erro'] ?? 'Erro ao consultar status da fatura');
     }
 
     return Map<String, dynamic>.from(data);
